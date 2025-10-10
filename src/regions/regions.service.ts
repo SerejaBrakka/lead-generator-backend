@@ -1,49 +1,66 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { CreateRegionDto } from './dto/create-region.dto';
 import { UpdateRegionDto } from './dto/update-region.dto';
-import { Region } from './interfaces/region';
-import { v4 as uuidv4 } from 'uuid';
+import { Region } from './entities/regions.entity';
 
 @Injectable()
 export class RegionsService {
-  private regions: Region[] = [];
+  constructor(
+    @InjectRepository(Region)
+    private readonly regionRepository: Repository<Region>,
+  ) {}
 
-  create(createRegionDto: CreateRegionDto) {
-    const existingRegion = this.regions.find(
-      (region) => region.title === createRegionDto.title,
-    );
+  async create(createRegionDto: CreateRegionDto): Promise<Region> {
+    const existingRegion = await this.regionRepository.findOne({
+      where: { title: createRegionDto.title },
+    });
 
     if (existingRegion) {
       throw new ConflictException('Регион с таким названием уже существует');
     }
 
-    const region = { id: uuidv4(), ...createRegionDto };
-    this.regions.push(region);
+    const region = this.regionRepository.create({
+      id: uuidv4(),
+      ...createRegionDto,
+    });
+
+    return await this.regionRepository.save(region);
+  }
+
+  async findAll(): Promise<Region[]> {
+    return await this.regionRepository.find();
+  }
+
+  async findOne(id: string): Promise<Region> {
+    const region = await this.regionRepository.findOne({ where: { id } });
+    if (!region) {
+      throw new ConflictException('Регион не найден');
+    }
     return region;
   }
 
-  findAll() {
-    return this.regions;
-  }
+  async update(id: string, updateRegionDto: UpdateRegionDto): Promise<Region> {
+    const region = await this.findOne(id);
 
-  findOne(id: string) {
-    return this.regions.find((region: Region) => region.id === id);
-  }
+    if (updateRegionDto.title && updateRegionDto.title !== region.title) {
+      const existingRegion = await this.regionRepository.findOne({
+        where: { title: updateRegionDto.title },
+      });
 
-  update(id: string, updateRegionDto: UpdateRegionDto) {
-    const region = this.regions.find((region: Region) => region.id === id);
-    if (region) {
-      Object.assign(region, updateRegionDto);
-      return region;
+      if (existingRegion) {
+        throw new ConflictException('Регион с таким названием уже существует');
+      }
     }
-    return null;
+
+    await this.regionRepository.update(id, updateRegionDto);
+    return await this.findOne(id);
   }
 
-  remove(id: string) {
-    const foundRegion = this.regions.find((region: Region) => region.id === id);
-    this.regions = this.regions.filter(
-      (region: Region) => region.id !== foundRegion?.id,
-    );
-    return foundRegion;
+  async remove(id: string): Promise<void> {
+    const region = await this.findOne(id);
+    await this.regionRepository.remove(region);
   }
 }

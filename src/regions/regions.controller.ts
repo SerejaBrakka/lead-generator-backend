@@ -3,42 +3,44 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
+  Put,
   Delete,
-  HttpCode,
 } from '@nestjs/common';
 import { RegionsService } from './regions.service';
 import { CreateRegionDto } from './dto/create-region.dto';
 import { UpdateRegionDto } from './dto/update-region.dto';
+import { Region } from './entities/regions.entity';
 
 @Controller('regions')
 export class RegionsController {
   constructor(private readonly regionsService: RegionsService) {}
 
   @Post()
-  @HttpCode(201)
-  create(@Body() createRegionDto: CreateRegionDto) {
+  create(@Body() createRegionDto: CreateRegionDto): Promise<Region> {
     return this.regionsService.create(createRegionDto);
   }
 
   @Get()
-  findAll() {
+  findAll(): Promise<Region[]> {
     return this.regionsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): Promise<Region> {
     return this.regionsService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRegionDto: UpdateRegionDto) {
+  @Put(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateRegionDto: UpdateRegionDto,
+  ): Promise<Region> {
     return this.regionsService.update(id, updateRegionDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string): Promise<void> {
     return this.regionsService.remove(id);
   }
 }

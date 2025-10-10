@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RegionsModule } from './regions/regions.module';
+import { dataSourceOptions } from './db/data-source';
 
 @Module({
-  imports: [RegionsModule],
+  imports: [TypeOrmModule.forRoot(dataSourceOptions), RegionsModule],
   controllers: [AppController],
   providers: [AppService],
 })
