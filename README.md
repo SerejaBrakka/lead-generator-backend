@@ -1,3 +1,6 @@
+создание миграции
+docker-compose exec backend npx typeorm migration:create dist/db/migrations/DeleteTestColumn -o
+
 Генерация миграции для текущего конфига внутри докер контейнера
 docker-compose exec backend npx typeorm migration:generate -d dist/db/data-source.js dist/db/migrations/AddTestColumn -o
 
