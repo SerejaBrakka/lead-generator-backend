@@ -18,3 +18,8 @@ export class GetSessionInfoDto {
   @ApiProperty()
   role: string;
 }
+
+export class TokenDto {
+  id: string;
+  email: string;
+}

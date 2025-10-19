@@ -1,11 +1,13 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { plainToInstance } from 'class-transformer';
+import { AppConfigService } from 'src/config/config.service';
+import { AuthUserDto } from 'src/modules/auth/dto/auth-user.dto';
+import { PasswordService } from 'src/modules/auth/password.service';
+import { TokenService } from 'src/modules/auth/token.service';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -13,9 +15,6 @@ import { UserResponseDto } from './dto/response-user.dto';
 import { RoleEntity } from './entities/role.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserRoleEnum } from './enums/user-role.enum';
-import { PasswordService } from 'src/modules/auth/password.service';
-import { JwtService } from '@nestjs/jwt';
-import { AuthUserDto } from 'src/modules/auth/dto/auth-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -25,7 +24,7 @@ export class UsersService {
     @InjectRepository(RoleEntity)
     private readonly rolesRepository: Repository<RoleEntity>,
     private passwordService: PasswordService,
-    private jwtService: JwtService,
+    private tokenService: TokenService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -59,26 +58,42 @@ export class UsersService {
       user.role = defaultRole;
     }
 
-    console.log('save user', user);
     await this.userRepository.save(user);
 
-    const accessToken = await this.jwtService.signAsync({
+    const {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    } = await this.tokenService.generateTokens({
       id,
       email: user.email,
-      role: user.role,
     });
 
-    return { accessToken };
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    };
   }
 
   async authentificate(authUserDto: AuthUserDto) {
     const { email, password } = authUserDto;
-    const user = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.email = :email', { email })
-      .addSelect(['user.salt', 'user.hash'])
-      .leftJoinAndSelect('user.role', 'role')
-      .getOne();
+    const user = await this.userRepository.findOne({
+      where: { email },
+      relations: ['role'],
+      select: [
+        'id',
+        'email',
+        'firstName',
+        'lastName',
+        'phone',
+        'role',
+        'hash',
+        'salt',
+      ],
+    });
 
     if (!user) {
       throw new UnauthorizedException('Пользователь не найден');
@@ -90,22 +105,30 @@ export class UsersService {
       throw new UnauthorizedException('Пользователь не авторизован');
     }
 
-    const accessToken = await this.jwtService.signAsync({
+    const {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    } = await this.tokenService.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role,
     });
 
-    return { accessToken };
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    };
   }
 
   async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.role', 'role')
-      .getMany();
+    const users = await this.userRepository.find({
+      relations: ['role'],
+    });
 
-    return plainToInstance(UserResponseDto, users);
+    return users;
   }
 
   async findOne(id: string): Promise<UserResponseDto> {

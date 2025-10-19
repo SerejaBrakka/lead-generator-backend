@@ -8,12 +8,14 @@ import { AuthService } from './auth.service';
 import { CookieService } from './cookie.service';
 import { GetSessionInfoDto } from './dto/auth-user.dto';
 import { SessionInfo } from './session-info.decorator';
+import { AppConfigService } from 'src/config/config.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly cookieService: CookieService,
+    private readonly configService: AppConfigService,
   ) {}
 
   @ApiCreatedResponse({ type: UserResponseDto })
@@ -22,8 +24,24 @@ export class AuthController {
     @Body() CreateUserDto: CreateUserDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const { accessToken } = await this.authService.signUp(CreateUserDto);
-    this.cookieService.setToken(res, accessToken);
+    const {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    } = await this.authService.signUp(CreateUserDto);
+    this.cookieService.setToken({
+      res,
+      key: this.configService.jwtAccessKey,
+      token: accessToken,
+      expiresIn: accessTokenExpires,
+    });
+    this.cookieService.setToken({
+      res,
+      key: this.configService.jwtRefreshKey,
+      token: refreshToken,
+      expiresIn: refreshTokenExpires,
+    });
   }
 
   @ApiCreatedResponse({ type: UserResponseDto })
@@ -32,14 +50,31 @@ export class AuthController {
     @Body() CreateUserDto: CreateUserDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const { accessToken } = await this.authService.signIn(CreateUserDto);
-    this.cookieService.setToken(res, accessToken);
+    const {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    } = await this.authService.signIn(CreateUserDto);
+
+    this.cookieService.setToken({
+      res,
+      key: this.configService.jwtAccessKey,
+      token: accessToken,
+      expiresIn: accessTokenExpires,
+    });
+    this.cookieService.setToken({
+      res,
+      key: this.configService.jwtRefreshKey,
+      token: refreshToken,
+      expiresIn: refreshTokenExpires,
+    });
   }
 
   @Get('sign-out')
   @UseGuards(AuthGuard)
   signOut(@Res({ passthrough: true }) res: express.Response) {
-    return this.cookieService.removeToken(res);
+    return this.cookieService.removeTokens(res);
   }
 
   @Get('session')
