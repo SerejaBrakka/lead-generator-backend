@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { TokenDto } from './dto/auth-user.dto';
+import { RefreshTokenDto, TokenDto } from './dto/auth-user.dto';
 import { AppConfigService } from 'src/config/config.service';
 
 @Injectable()
@@ -26,6 +26,33 @@ export class TokenService {
     }
 
     return milliseconds;
+  }
+
+  async refreshToken({ refreshToken }: RefreshTokenDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpires: number;
+    refreshTokenExpires: number;
+  }> {
+    console.log('refreshToken', refreshToken);
+    const { id, email } = await this.jwtService.verifyAsync(refreshToken, {
+      secret: this.configService.jwtRefreshSecret,
+    });
+    console.log(id, email);
+
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    } = await this.generateTokens({ id, email });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    };
   }
 
   async generateTokens(userInfo: TokenDto): Promise<{

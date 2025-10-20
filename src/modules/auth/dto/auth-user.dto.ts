@@ -23,3 +23,8 @@ export class TokenDto {
   id: string;
   email: string;
 }
+
+export class RefreshTokenDto {
+  @ApiProperty()
+  refreshToken: string;
+}
