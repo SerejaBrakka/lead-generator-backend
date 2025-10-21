@@ -34,11 +34,9 @@ export class TokenService {
     accessTokenExpires: number;
     refreshTokenExpires: number;
   }> {
-    console.log('refreshToken', refreshToken);
     const { id, email } = await this.jwtService.verifyAsync(refreshToken, {
       secret: this.configService.jwtRefreshSecret,
     });
-    console.log(id, email);
 
     const {
       accessToken,
