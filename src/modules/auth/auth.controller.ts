@@ -90,7 +90,7 @@ export class AuthController {
       refreshToken: newRefreshToken,
       accessTokenExpires,
       refreshTokenExpires,
-    } = await this.authService.refreshToken(refreshToken);
+    } = await this.authService.updateToken(refreshToken);
 
     this.cookieService.setToken({
       res,

@@ -24,6 +24,9 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 255, nullable: true, select: false })
   salt: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  refreshTokenHash: string;
+
   @ManyToOne(() => RoleEntity, (item) => item.user)
   @JoinColumn({ name: 'role_id' })
   role: RoleEntity;

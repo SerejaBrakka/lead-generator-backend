@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { RefreshTokenDto, TokenDto } from './dto/auth-user.dto';
+import * as bcrypt from 'bcrypt';
 import { AppConfigService } from 'src/config/config.service';
+import { TokenDto } from './dto/auth-user.dto';
 
 @Injectable()
 export class TokenService {
@@ -28,40 +29,18 @@ export class TokenService {
     return milliseconds;
   }
 
-  async refreshToken({ refreshToken }: RefreshTokenDto): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    accessTokenExpires: number;
-    refreshTokenExpires: number;
-  }> {
-    const { id, email } = await this.jwtService.verifyAsync(refreshToken, {
-      secret: this.configService.jwtRefreshSecret,
-    });
-
-    const {
-      accessToken,
-      refreshToken: newRefreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    } = await this.generateTokens({ id, email });
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    };
-  }
-
   async generateTokens(userInfo: TokenDto): Promise<{
     accessToken: string;
     refreshToken: string;
     accessTokenExpires: number;
     refreshTokenExpires: number;
+    refreshTokenHash: string;
+    id: string;
   }> {
     const accessTokenExpires = this.parseExpiresIn(
       this.configService.jwtAccessExpiresIn,
     );
+
     const refreshTokenExpires = this.parseExpiresIn(
       this.configService.jwtRefreshExpiresIn,
     );
@@ -76,11 +55,15 @@ export class TokenService {
       expiresIn: refreshTokenExpires,
     });
 
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
     return {
       accessToken,
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
+      refreshTokenHash,
+      id: userInfo.id,
     };
   }
 }

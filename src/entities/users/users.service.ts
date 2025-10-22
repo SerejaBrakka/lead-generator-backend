@@ -3,9 +3,14 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import { AppConfigService } from 'src/config/config.service';
-import { AuthUserDto } from 'src/modules/auth/dto/auth-user.dto';
+import {
+  AuthUserDto,
+  RefreshTokenDto,
+} from 'src/modules/auth/dto/auth-user.dto';
 import { PasswordService } from 'src/modules/auth/password.service';
 import { TokenService } from 'src/modules/auth/token.service';
 import { Repository } from 'typeorm';
@@ -25,9 +30,18 @@ export class UsersService {
     private readonly rolesRepository: Repository<RoleEntity>,
     private passwordService: PasswordService,
     private tokenService: TokenService,
+    private jwtService: JwtService,
+    private configService: AppConfigService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpires: number;
+    refreshTokenExpires: number;
+    refreshTokenHash: string;
+    id: string;
+  }> {
     const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
@@ -65,6 +79,7 @@ export class UsersService {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
+      refreshTokenHash,
     } = await this.tokenService.generateTokens({
       id,
       email: user.email,
@@ -75,10 +90,19 @@ export class UsersService {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
+      refreshTokenHash,
+      id: user.id,
     };
   }
 
-  async authentificate(authUserDto: AuthUserDto) {
+  async authentificate(authUserDto: AuthUserDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpires: number;
+    refreshTokenExpires: number;
+    refreshTokenHash: string;
+    id: string;
+  }> {
     const { email, password } = authUserDto;
     const user = await this.userRepository.findOne({
       where: { email },
@@ -110,6 +134,7 @@ export class UsersService {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
+      refreshTokenHash,
     } = await this.tokenService.generateTokens({
       id: user.id,
       email: user.email,
@@ -120,6 +145,56 @@ export class UsersService {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
+      refreshTokenHash,
+      id: user.id,
+    };
+  }
+
+  async updateToken({ refreshToken }: RefreshTokenDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpires: number;
+    refreshTokenExpires: number;
+    refreshTokenHash: string;
+    id: string;
+  }> {
+    const user = await this.jwtService.verifyAsync(refreshToken, {
+      secret: this.configService.jwtRefreshSecret,
+    });
+    console.log('user', user);
+    if (!user) {
+      throw new ConflictException('Refresh token not valid');
+    }
+
+    const { id, email } = user;
+
+    const refreshTokenHash = await this.getRefreshTokenHash(id);
+
+    if (!refreshTokenHash) {
+      throw new ConflictException('Refresh token revoked');
+    }
+
+    const isMatch = await bcrypt.compare(refreshToken, refreshTokenHash);
+    console.log('isMatch', isMatch);
+    if (!isMatch) {
+      throw new ConflictException('Refresh token revoked');
+    }
+
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+      refreshTokenHash: newRefreshTokenHash,
+    } = await this.tokenService.generateTokens({ id, email });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+      refreshTokenHash: newRefreshTokenHash,
+      id,
     };
   }
 
@@ -157,5 +232,47 @@ export class UsersService {
     await this.userRepository.remove(user);
 
     return user;
+  }
+
+  async setRefreshTokenHash(id: string, refreshTokenHash: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      throw new ConflictException('Юзер не найден');
+    }
+
+    user.refreshTokenHash = refreshTokenHash;
+
+    await this.userRepository.update(id, { refreshTokenHash });
+  }
+
+  async getRefreshTokenHash(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      throw new ConflictException('Юзер не найден');
+    }
+    return user.refreshTokenHash;
+  }
+
+  async removeRefreshTokenHash(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      throw new ConflictException('Юзер не найден');
+    }
+
+    user.refreshTokenHash = '';
+
+    await this.userRepository.save(user);
   }
 }

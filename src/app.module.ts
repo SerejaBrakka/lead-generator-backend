@@ -9,7 +9,6 @@ import { dataSourceOptions } from './db/data-source';
 import { RegionsModule } from './entities/regions/regions.module';
 import { UsersModule } from './entities/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { TokenService } from './modules/auth/token.service';
 
 @Module({
   imports: [
@@ -28,6 +27,6 @@ import { TokenService } from './modules/auth/token.service';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, TokenService],
+  providers: [AppService],
 })
 export class AppModule {}

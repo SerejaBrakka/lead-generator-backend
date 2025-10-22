@@ -2,24 +2,68 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from 'src/entities/users/dto/create-user.dto';
 import { UsersService } from 'src/entities/users/users.service';
 import { AuthUserDto, RefreshTokenDto } from './dto/auth-user.dto';
-import { TokenService } from './token.service';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly tokenService: TokenService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   async signUp(createUserDto: CreateUserDto) {
-    return await this.usersService.create(createUserDto);
-  }
+    const {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+      refreshTokenHash,
+      id,
+    } = await this.usersService.create(createUserDto);
 
-  async refreshToken({ refreshToken }: RefreshTokenDto) {
-    return await this.tokenService.refreshToken({ refreshToken });
+    await this.usersService.setRefreshTokenHash(id, refreshTokenHash);
+
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    };
   }
 
   async signIn(authUserDto: AuthUserDto) {
-    return await this.usersService.authentificate(authUserDto);
+    const {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+      refreshTokenHash,
+      id,
+    } = await this.usersService.authentificate(authUserDto);
+
+    await this.usersService.setRefreshTokenHash(id, refreshTokenHash);
+
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    };
+  }
+
+  async updateToken({ refreshToken }: RefreshTokenDto) {
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+      refreshTokenHash,
+      id,
+    } = await this.usersService.updateToken({ refreshToken });
+
+    await this.usersService.setRefreshTokenHash(id, refreshTokenHash);
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires,
+      refreshTokenExpires,
+    };
   }
 }
