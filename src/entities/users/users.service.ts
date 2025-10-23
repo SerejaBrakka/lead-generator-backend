@@ -5,13 +5,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { AppConfigService } from 'src/config/config.service';
 import {
   AuthUserDto,
   RefreshTokenDto,
 } from 'src/modules/auth/dto/auth-user.dto';
-import { PasswordService } from 'src/modules/auth/password.service';
+import { HashingService } from 'src/modules/auth/hashing.service';
 import { TokenService } from 'src/modules/auth/token.service';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,7 +28,7 @@ export class UsersService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(RoleEntity)
     private readonly rolesRepository: Repository<RoleEntity>,
-    private passwordService: PasswordService,
+    private hashingService: HashingService,
     private tokenService: TokenService,
     private jwtService: JwtService,
     private configService: AppConfigService,
@@ -52,8 +52,8 @@ export class UsersService {
       );
     }
 
-    const salt = this.passwordService.getSalt();
-    const hash = this.passwordService.getHash(createUserDto.password, salt);
+    const salt = this.hashingService.getSalt();
+    const hash = this.hashingService.hashPassword(createUserDto.password, salt);
 
     const id = uuidv4();
     const user = this.userRepository.create({
@@ -123,7 +123,7 @@ export class UsersService {
       throw new UnauthorizedException('Пользователь не найден');
     }
 
-    const hash = this.passwordService.getHash(password, user.salt);
+    const hash = this.hashingService.hashPassword(password, user.salt);
 
     if (hash !== user.hash) {
       throw new UnauthorizedException('Пользователь не авторизован');
@@ -161,21 +161,27 @@ export class UsersService {
     const user = await this.jwtService.verifyAsync(refreshToken, {
       secret: this.configService.jwtRefreshSecret,
     });
-    console.log('user', user);
+
     if (!user) {
       throw new ConflictException('Refresh token not valid');
     }
 
     const { id, email } = user;
-
     const refreshTokenHash = await this.getRefreshTokenHash(id);
 
     if (!refreshTokenHash) {
       throw new ConflictException('Refresh token revoked');
     }
 
-    const isMatch = await bcrypt.compare(refreshToken, refreshTokenHash);
-    console.log('isMatch', isMatch);
+    if (!refreshTokenHash) {
+      throw new ConflictException('Refresh token revoked');
+    }
+
+    const isMatch = this.hashingService.compareToken(
+      refreshToken,
+      refreshTokenHash,
+    );
+
     if (!isMatch) {
       throw new ConflictException('Refresh token revoked');
     }
@@ -237,7 +243,7 @@ export class UsersService {
   async setRefreshTokenHash(id: string, refreshTokenHash: string) {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ['role'],
+      select: ['refreshTokenHash'],
     });
 
     if (!user) {
@@ -245,7 +251,6 @@ export class UsersService {
     }
 
     user.refreshTokenHash = refreshTokenHash;
-
     await this.userRepository.update(id, { refreshTokenHash });
   }
 

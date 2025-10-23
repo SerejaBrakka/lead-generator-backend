@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { AppConfigService } from 'src/config/config.service';
 import { TokenDto } from './dto/auth-user.dto';
+import { HashingService } from './hashing.service';
 
 @Injectable()
 export class TokenService {
   constructor(
     private jwtService: JwtService,
     private configService: AppConfigService,
+    private hashingService: HashingService,
   ) {}
 
   private parseExpiresIn(expiresIn: string): number {
@@ -55,7 +56,7 @@ export class TokenService {
       expiresIn: refreshTokenExpires,
     });
 
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    const refreshTokenHash = this.hashingService.hashToken(refreshToken);
 
     return {
       accessToken,

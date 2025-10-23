@@ -28,4 +28,8 @@ export class AppConfigService {
   get jwtRefreshExpiresIn(): string {
     return this.configService.getOrThrow<string>('REFRESH_TOKEN_EXPIRES_IN');
   }
+
+  get HMAC_REFRESH_SECRET(): string {
+    return this.configService.getOrThrow<string>('HMAC_REFRESH_SECRET');
+  }
 }
