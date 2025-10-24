@@ -7,7 +7,12 @@ import { UserResponseDto } from 'src/entities/users/dto/response-user.dto';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { CookieService } from './cookie.service';
-import { GetSessionInfoDto, RefreshTokenDto } from './dto/auth-user.dto';
+import {
+  AuthUserDto,
+  GetSessionInfoDto,
+  RecoveryPasswordDto,
+  RefreshTokenDto,
+} from './dto/auth-user.dto';
 import { SessionInfo } from './session-info.decorator';
 
 @Controller('auth')
@@ -47,7 +52,7 @@ export class AuthController {
   @ApiCreatedResponse({ type: UserResponseDto })
   @Post('sign-in')
   async signIn(
-    @Body() CreateUserDto: CreateUserDto,
+    @Body() AuthUserDto: AuthUserDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const {
@@ -55,7 +60,7 @@ export class AuthController {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
-    } = await this.authService.signIn(CreateUserDto);
+    } = await this.authService.signIn(AuthUserDto);
 
     this.cookieService.setToken({
       res,
@@ -76,6 +81,11 @@ export class AuthController {
       accessTokenExpires,
       refreshTokenExpires,
     };
+  }
+
+  @Post('recovery-password')
+  async recoveryPassword(@Body() recoveryPasswordDTO: RecoveryPasswordDto) {
+    return this.authService.recoveryPassword(recoveryPasswordDTO);
   }
 
   @Post('refresh-token')

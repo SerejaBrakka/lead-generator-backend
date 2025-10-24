@@ -5,10 +5,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcryptjs';
 import { AppConfigService } from 'src/config/config.service';
 import {
   AuthUserDto,
+  RecoveryPasswordDto,
   RefreshTokenDto,
 } from 'src/modules/auth/dto/auth-user.dto';
 import { HashingService } from 'src/modules/auth/hashing.service';
@@ -126,7 +126,7 @@ export class UsersService {
     const hash = this.hashingService.hashPassword(password, user.salt);
 
     if (hash !== user.hash) {
-      throw new UnauthorizedException('Пользователь не авторизован');
+      throw new UnauthorizedException('Неверный пароль');
     }
 
     const {
@@ -201,6 +201,49 @@ export class UsersService {
       refreshTokenExpires,
       refreshTokenHash: newRefreshTokenHash,
       id,
+    };
+  }
+
+  async recoveryPassword(recoveryPasswordDto: RecoveryPasswordDto) {
+    const user = await this.userRepository.findOne({
+      where: { email: recoveryPasswordDto.email },
+      relations: ['role'],
+      select: ['id', 'email', 'firstName', 'hash', 'salt'],
+    });
+
+    if (!user) {
+      throw new ConflictException('Юзер не найден');
+    }
+
+    if (
+      recoveryPasswordDto.newPassword !== recoveryPasswordDto.confirmPassword
+    ) {
+      throw new ConflictException('Пароли не совпадают');
+    }
+
+    const currentPasswordHash = this.hashingService.hashPassword(
+      recoveryPasswordDto.password,
+      user.salt,
+    );
+
+    if (currentPasswordHash !== user.hash) {
+      throw new ConflictException('Неверный прошлый пароль');
+    }
+
+    const salt = this.hashingService.getSalt();
+    const hash = this.hashingService.hashPassword(
+      recoveryPasswordDto.newPassword,
+      salt,
+    );
+
+    user.hash = hash;
+    user.salt = salt;
+
+    await this.userRepository.save(user);
+
+    return {
+      code: 200,
+      message: 'Пароль успешно изменен',
     };
   }
 

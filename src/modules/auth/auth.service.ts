@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from 'src/entities/users/dto/create-user.dto';
 import { UsersService } from 'src/entities/users/users.service';
-import { AuthUserDto, RefreshTokenDto } from './dto/auth-user.dto';
+import {
+  AuthUserDto,
+  RecoveryPasswordDto,
+  RefreshTokenDto,
+} from './dto/auth-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -65,5 +69,9 @@ export class AuthService {
       accessTokenExpires,
       refreshTokenExpires,
     };
+  }
+
+  async recoveryPassword(recoveryPasswordDto: RecoveryPasswordDto) {
+    return this.usersService.recoveryPassword(recoveryPasswordDto);
   }
 }
