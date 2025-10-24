@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from 'src/config/config.service';
 import { TokenDto } from './dto/auth-user.dto';
@@ -28,6 +28,14 @@ export class TokenService {
     }
 
     return milliseconds;
+  }
+
+  async verifyRefreshToken(token: string) {
+    const user = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.jwtRefreshSecret,
+    });
+
+    return user;
   }
 
   async generateTokens(userInfo: TokenDto): Promise<{

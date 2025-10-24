@@ -29,24 +29,7 @@ export class AuthController {
     @Body() CreateUserDto: CreateUserDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const {
-      accessToken,
-      refreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    } = await this.authService.signUp(CreateUserDto);
-    this.cookieService.setToken({
-      res,
-      key: this.configService.jwtAccessKey,
-      token: accessToken,
-      expiresIn: accessTokenExpires,
-    });
-    this.cookieService.setToken({
-      res,
-      key: this.configService.jwtRefreshKey,
-      token: refreshToken,
-      expiresIn: refreshTokenExpires,
-    });
+    return await this.authService.signUp(CreateUserDto, res);
   }
 
   @ApiCreatedResponse({ type: UserResponseDto })
@@ -60,7 +43,7 @@ export class AuthController {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
-    } = await this.authService.signIn(AuthUserDto);
+    } = await this.authService.signIn(AuthUserDto, res);
 
     this.cookieService.setToken({
       res,

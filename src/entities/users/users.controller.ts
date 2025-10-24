@@ -2,6 +2,7 @@ import { Controller, Delete, Get, Param } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { UserResponseDto } from './dto/response-user.dto';
 import { UsersService } from './users.service';
+import { UserFieldEnum } from './enums/user.enum';
 
 @Controller('users')
 export class UsersController {
@@ -16,7 +17,7 @@ export class UsersController {
   @ApiOkResponse({ type: UserResponseDto })
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+    return this.usersService.findUser({ field: UserFieldEnum.ID, value: id });
   }
 
   @ApiOkResponse({ type: UserResponseDto })

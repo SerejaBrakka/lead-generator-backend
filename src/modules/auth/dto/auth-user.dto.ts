@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { UserResponseDto } from 'src/entities/users/dto/response-user.dto';
 
 export class AuthUserDto {
   @ApiProperty()
@@ -7,6 +8,8 @@ export class AuthUserDto {
   @ApiProperty()
   password: string;
 }
+
+export type AuthResponseDto = UserResponseDto & TokensDto;
 
 export class GetSessionInfoDto {
   @ApiProperty()
@@ -41,4 +44,18 @@ export class RecoveryPasswordDto {
 
   @ApiProperty()
   confirmPassword: string;
+}
+
+export class TokensDto {
+  @ApiProperty()
+  accessToken: string;
+
+  @ApiProperty()
+  refreshToken: string;
+
+  @ApiProperty()
+  accessTokenExpires: number;
+
+  @ApiProperty()
+  refreshTokenExpires: number;
 }
