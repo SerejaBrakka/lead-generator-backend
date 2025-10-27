@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { ApiCreatedResponse } from '@nestjs/swagger';
 import express from 'express';
-import { AppConfigService } from 'src/config/config.service';
 import { CreateUserDto } from 'src/entities/users/dto/create-user.dto';
 import { UserResponseDto } from 'src/entities/users/dto/response-user.dto';
+import { UsersService } from 'src/entities/users/users.service';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { CookieService } from './cookie.service';
@@ -20,7 +20,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly cookieService: CookieService,
-    private readonly configService: AppConfigService,
+    private readonly userService: UsersService,
   ) {}
 
   @ApiCreatedResponse({ type: UserResponseDto })
@@ -38,37 +38,12 @@ export class AuthController {
     @Body() AuthUserDto: AuthUserDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const {
-      accessToken,
-      refreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    } = await this.authService.signIn(AuthUserDto, res);
-
-    this.cookieService.setToken({
-      res,
-      key: this.configService.jwtAccessKey,
-      token: accessToken,
-      expiresIn: accessTokenExpires,
-    });
-    this.cookieService.setToken({
-      res,
-      key: this.configService.jwtRefreshKey,
-      token: refreshToken,
-      expiresIn: refreshTokenExpires,
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    };
+    return await this.authService.signIn(AuthUserDto, res);
   }
 
   @Post('recovery-password')
   async recoveryPassword(@Body() recoveryPasswordDTO: RecoveryPasswordDto) {
-    return this.authService.recoveryPassword(recoveryPasswordDTO);
+    return this.userService.recoveryPassword(recoveryPasswordDTO);
   }
 
   @Post('refresh-token')
@@ -78,38 +53,16 @@ export class AuthController {
     refreshToken: RefreshTokenDto,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const {
-      accessToken,
-      refreshToken: newRefreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    } = await this.authService.updateToken(refreshToken);
-
-    this.cookieService.setToken({
-      res,
-      key: this.configService.jwtAccessKey,
-      token: accessToken,
-      expiresIn: accessTokenExpires,
-    });
-
-    this.cookieService.setToken({
-      res,
-      key: this.configService.jwtRefreshKey,
-      token: newRefreshToken,
-      expiresIn: refreshTokenExpires,
-    });
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-      accessTokenExpires,
-      refreshTokenExpires,
-    };
+    return await this.authService.updateToken(refreshToken);
   }
 
   @Get('sign-out')
   @UseGuards(AuthGuard)
-  signOut(@Res({ passthrough: true }) res: express.Response) {
+  async signOut(
+    @SessionInfo() session: GetSessionInfoDto,
+    @Res({ passthrough: true }) res: express.Response,
+  ) {
+    await this.userService.removeRefreshTokenHash(session.id);
     return this.cookieService.removeTokens(res);
   }
 

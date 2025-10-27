@@ -7,7 +7,6 @@ import { CookieService } from './cookie.service';
 import {
   AuthResponseDto,
   AuthUserDto,
-  RecoveryPasswordDto,
   RefreshTokenDto,
 } from './dto/auth-user.dto';
 import { HashingService } from './hashing.service';
@@ -111,7 +110,9 @@ export class AuthService {
     };
   }
 
-  async updateToken({ refreshToken }: RefreshTokenDto) {
+  async updateToken({
+    refreshToken,
+  }: RefreshTokenDto): Promise<AuthResponseDto> {
     const user = await this.tokenService.verifyRefreshToken(refreshToken);
 
     if (!user) {
@@ -153,10 +154,7 @@ export class AuthService {
       refreshToken: newRefreshToken,
       accessTokenExpires,
       refreshTokenExpires,
+      ...user,
     };
-  }
-
-  async recoveryPassword(recoveryPasswordDto: RecoveryPasswordDto) {
-    return this.usersService.recoveryPassword(recoveryPasswordDto);
   }
 }

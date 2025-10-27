@@ -13,6 +13,7 @@ import { HashingService } from 'src/modules/auth/hashing.service';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
+import { FindUserDto } from './dto/find-user.dto';
 import { UserResponseDto } from './dto/response-user.dto';
 import { RoleEntity } from './entities/role.entity';
 import { UserEntity } from './entities/user.entity';
@@ -91,15 +92,12 @@ export class UsersService {
   }
 
   async recoveryPassword(recoveryPasswordDto: RecoveryPasswordDto) {
-    const user = await this.userRepository.findOne({
-      where: { email: recoveryPasswordDto.email },
+    const user = await this.findUser({
+      field: UserFieldEnum.EMAIL,
+      value: recoveryPasswordDto.email,
       relations: ['role'],
       select: ['id', 'email', 'firstName', 'hash', 'salt'],
     });
-
-    if (!user) {
-      throw new ConflictException('Юзер не найден');
-    }
 
     if (
       recoveryPasswordDto.newPassword !== recoveryPasswordDto.confirmPassword
@@ -138,12 +136,7 @@ export class UsersService {
     value,
     select,
     relations,
-  }: {
-    field: string;
-    value: string;
-    select?: (keyof UserEntity)[];
-    relations?: string[];
-  }): Promise<UserEntity> {
+  }: FindUserDto): Promise<UserEntity> {
     const whereCondition = {
       [field]: value,
     } as FindOptionsWhere<UserEntity>;
@@ -173,6 +166,7 @@ export class UsersService {
     const user = await this.userRepository.findOne({
       where: { id },
       relations: ['role'],
+      select: ['id', 'email', 'firstName', 'lastName', 'phone', 'role'],
     });
 
     if (!user) {

@@ -17,7 +17,7 @@ export class UsersController {
   @ApiOkResponse({ type: UserResponseDto })
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findUser({ field: UserFieldEnum.ID, value: id });
+    return this.usersService.findOne(id);
   }
 
   @ApiOkResponse({ type: UserResponseDto })
