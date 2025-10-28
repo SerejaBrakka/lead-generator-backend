@@ -3,6 +3,7 @@ import { ApiCreatedResponse } from '@nestjs/swagger';
 import express from 'express';
 import { CreateUserDto } from 'src/entities/users/dto/create-user.dto';
 import { UserResponseDto } from 'src/entities/users/dto/response-user.dto';
+import { UserFieldEnum } from 'src/entities/users/enums/user.enum';
 import { UsersService } from 'src/entities/users/users.service';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
@@ -68,7 +69,21 @@ export class AuthController {
 
   @Get('session')
   @UseGuards(AuthGuard)
-  getSessionInfo(@SessionInfo() session: GetSessionInfoDto) {
-    return session;
+  async getSessionInfo(@SessionInfo() session: GetSessionInfoDto) {
+    const user = await this.userService.findUser({
+      field: UserFieldEnum.ID,
+      value: session.id,
+      select: ['id', 'email', 'firstName', 'lastName', 'phone', 'role'],
+      relations: ['role'],
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone,
+      role: user.role,
+    };
   }
 }

@@ -111,7 +111,7 @@ export class UsersService {
     );
 
     if (currentPasswordHash !== user.hash) {
-      throw new ConflictException('Неверный прошлый пароль');
+      throw new ConflictException('Неверный текущий пароль пароль');
     }
 
     const salt = this.hashingService.getSalt();

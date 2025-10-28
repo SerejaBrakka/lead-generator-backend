@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AppConfigModule } from './config/config.module';
 import { AppConfigService } from './config/config.service';
 import { dataSourceOptions } from './db/data-source';
+import { LeadModule } from './entities/lead/lead.module';
 import { RegionsModule } from './entities/regions/regions.module';
 import { UsersModule } from './entities/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -25,6 +26,7 @@ import { AuthModule } from './modules/auth/auth.module';
       }),
       global: true,
     }),
+    LeadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

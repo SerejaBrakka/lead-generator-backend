@@ -5,9 +5,9 @@ import { CreateUserDto } from 'src/entities/users/dto/create-user.dto';
 import { UsersService } from 'src/entities/users/users.service';
 import { CookieService } from './cookie.service';
 import {
-  AuthResponseDto,
   AuthUserDto,
   RefreshTokenDto,
+  AuthResponseDto,
 } from './dto/auth-user.dto';
 import { HashingService } from './hashing.service';
 import { TokenService } from './token.service';
@@ -62,7 +62,6 @@ export class AuthService {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
-      ...user,
     };
   }
 
@@ -106,7 +105,6 @@ export class AuthService {
       refreshToken,
       accessTokenExpires,
       refreshTokenExpires,
-      ...user,
     };
   }
 
@@ -154,7 +152,6 @@ export class AuthService {
       refreshToken: newRefreshToken,
       accessTokenExpires,
       refreshTokenExpires,
-      ...user,
     };
   }
 }

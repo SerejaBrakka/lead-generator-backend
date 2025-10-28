@@ -1,12 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { FirstName } from 'src/decorators/common-auth.decorators';
+import { AuthUserDto } from 'src/modules/auth/dto/auth-user.dto';
 
-export class CreateUserDto {
-  @ApiProperty()
-  email: string;
-
-  @ApiProperty()
-  password: string;
-
-  @ApiProperty()
-  firstName: string;
+export class CreateUserDto extends AuthUserDto {
+  @FirstName()
+  firstName?: string;
 }
